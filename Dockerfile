@@ -1,7 +1,7 @@
-FROM blacklabelops/java:openjre8
-MAINTAINER Steffen Bleul <sbl@blacklabelops.com>
+FROM cogniteev/oracle-java:java8
+MAINTAINER Freddie Ho <freddie.ho@gmail.com>
 
-ARG CRUCIBLE_VERSION=4.3.0
+ARG CRUCIBLE_VERSION=4.4.1
 # permissions
 ARG CONTAINER_UID=1000
 ARG CONTAINER_GID=1000
@@ -16,30 +16,31 @@ RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
     export POSTGRESQL_DRIVER_VERSION=9.4.1207 && \
     export CONTAINER_USER=crucible &&  \
     export CONTAINER_GROUP=crucible &&  \
-    addgroup -g $CONTAINER_GID $CONTAINER_GROUP &&  \
-    adduser -u $CONTAINER_UID \
-            -G $CONTAINER_GROUP \
-            -h /home/$CONTAINER_USER \
-            -s /bin/bash \
-            -S $CONTAINER_USER &&  \
-    apk add --update \
-      git \
-      mercurial \
-      openssh \
-      ca-certificates \
-      unzip \
-      curl \
-      wget &&  \
-    # Install xmlstarlet
-    export XMLSTARLET_VERSION=1.6.1-r1              &&  \
-    wget --directory-prefix=/tmp https://github.com/menski/alpine-pkg-xmlstarlet/releases/download/${XMLSTARLET_VERSION}/xmlstarlet-${XMLSTARLET_VERSION}.apk && \
-    apk add --allow-untrusted /tmp/xmlstarlet-${XMLSTARLET_VERSION}.apk && \
-    wget -O /tmp/crucible.zip https://www.atlassian.com/software/crucible/downloads/binary/crucible-${CRUCIBLE_VERSION}.zip && \
-    unzip /tmp/crucible.zip -d /tmp && \
-    mv /tmp/fecru-${CRUCIBLE_VERSION} /tmp/crucible && \
+    addgroup --system --gid $CONTAINER_GID $CONTAINER_GROUP &&  \
+    adduser -q --system --uid $CONTAINER_UID \
+            --gid $CONTAINER_GID \
+            --home /home/$CONTAINER_USER \
+            --shell /bin/bash \
+            $CONTAINER_USER && \
+    # Install tools
+    apt-get update --quiet && \
+    apt-get install --quiet --yes --no-install-recommends \
+        git \
+        mercurial \
+        subversion \
+        openssl \
+        ca-certificates \
+        unzip \
+        curl \
+        wget \
+        xmlstarlet && \
+    apt-get clean && \
+    # Install Crucible
     mkdir -p ${FISHEYE_INST} && \
-    mkdir -p /opt && \
-    mv /tmp/crucible /opt/crucible && \
+    mkdir -p ${CRUCIBLE_INSTALL} && \
+    wget -O /tmp/crucible.zip https://www.atlassian.com/software/crucible/downloads/binary/crucible-${CRUCIBLE_VERSION}.zip && \
+    unzip -x /tmp/crucible.zip -d /tmp && \
+    mv /tmp/fecru-${CRUCIBLE_VERSION}/* ${CRUCIBLE_INSTALL} && \
     # Install database drivers
     rm -f                                               \
       ${CRUCIBLE_INSTALL}/lib/mysql-connector-java*.jar &&  \
@@ -92,7 +93,10 @@ RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
 USER crucible
 WORKDIR /var/atlassian/crucible
 VOLUME ["/var/atlassian/crucible"]
+# Port for http://
 EXPOSE 8060
+# Port for https://
+EXPOSE 8063
 COPY imagescripts /home/crucible
 ENTRYPOINT ["/bin/tini","--","/home/crucible/docker-entrypoint.sh"]
 CMD ["crucible"]
