@@ -1,7 +1,7 @@
 FROM cogniteev/oracle-java:java8
 MAINTAINER Freddie Ho <freddie.ho@gmail.com>
 
-ARG CRUCIBLE_VERSION=4.4.1
+ARG CRUCIBLE_VERSION=4.4.2
 # permissions
 ARG CONTAINER_UID=1000
 ARG CONTAINER_GID=1000
@@ -13,7 +13,7 @@ ENV FISHEYE_INST=/var/atlassian/crucible \
     CRUCIBLE_PROXY_SCHEME=
 
 RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
-    export POSTGRESQL_DRIVER_VERSION=9.4.1207 && \
+    export POSTGRESQL_DRIVER_VERSION=42.1.4 && \
     export CONTAINER_USER=crucible &&  \
     export CONTAINER_GROUP=crucible &&  \
     addgroup --system --gid $CONTAINER_GID $CONTAINER_GROUP &&  \
@@ -33,13 +33,15 @@ RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
         unzip \
         curl \
         wget \
+        joe \
+        libsvn-java \
         xmlstarlet && \
     apt-get clean && \
     # Install Crucible
     mkdir -p ${FISHEYE_INST} && \
     mkdir -p ${CRUCIBLE_INSTALL} && \
     wget -O /tmp/crucible.zip https://www.atlassian.com/software/crucible/downloads/binary/crucible-${CRUCIBLE_VERSION}.zip && \
-    unzip -x /tmp/crucible.zip -d /tmp && \
+    unzip -q -d /tmp /tmp/crucible.zip && \
     mv /tmp/fecru-${CRUCIBLE_VERSION}/* ${CRUCIBLE_INSTALL} && \
     # Install database drivers
     rm -f                                               \
@@ -79,12 +81,6 @@ RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
     export TINI_VERSION=0.9.0 && \
     curl -fsSL https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static -o /bin/tini && \
     chmod +x /bin/tini && \
-    # Remove obsolete packages
-    apk del \
-      ca-certificates \
-      unzip \
-      curl \
-      wget &&  \
     # Clean caches and tmps
     rm -rf /var/cache/apk/* && \
     rm -rf /tmp/* && \
