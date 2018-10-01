@@ -1,7 +1,7 @@
 FROM cogniteev/oracle-java:java8
 MAINTAINER Freddie Ho <freddie.ho@gmail.com>
 
-ARG CRUCIBLE_VERSION=4.4.2
+ARG CRUCIBLE_VERSION=4.5.4
 # permissions
 ARG CONTAINER_UID=1000
 ARG CONTAINER_GID=1000
@@ -10,7 +10,8 @@ ENV FISHEYE_INST=/var/atlassian/crucible \
     CRUCIBLE_INSTALL=/opt/crucible \
     CRUCIBLE_PROXY_NAME= \
     CRUCIBLE_PROXY_PORT= \
-    CRUCIBLE_PROXY_SCHEME=
+    CRUCIBLE_PROXY_SCHEME= \
+    FISHEYE_OPTS=-Dcrucible.review.content.size.limit=1200
 
 RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
     export POSTGRESQL_DRIVER_VERSION=42.1.4 && \
@@ -40,6 +41,7 @@ RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
     # Install Crucible
     mkdir -p ${FISHEYE_INST} && \
     mkdir -p ${CRUCIBLE_INSTALL} && \
+    mkdir -p /backup && \
     wget -O /tmp/crucible.zip https://www.atlassian.com/software/crucible/downloads/binary/crucible-${CRUCIBLE_VERSION}.zip && \
     unzip -q -d /tmp /tmp/crucible.zip && \
     mv /tmp/fecru-${CRUCIBLE_VERSION}/* ${CRUCIBLE_INSTALL} && \
@@ -88,7 +90,7 @@ RUN export MYSQL_DRIVER_VERSION=5.1.38 && \
 
 USER crucible
 WORKDIR /var/atlassian/crucible
-VOLUME ["/var/atlassian/crucible"]
+VOLUME ["/var/atlassian/crucible", "/backup]
 # Port for http://
 EXPOSE 8060
 # Port for https://
